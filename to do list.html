@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>To-Do App</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        background: #f4f4f4;
+        padding: 30px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .container {
+        width: 450px;
+        background: white;
+        padding: 25px;
+        border-radius: 10px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .input-group {
+        margin-bottom: 15px;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        margin-top: 8px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    button {
+        width: 100%;
+        padding: 12px;
+        background: #333;
+        color: white;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    button:hover {
+        background: #555;
+    }
+
+    .task {
+        background: #fafafa;
+        padding: 15px;
+        margin-top: 15px;
+        border-radius: 6px;
+        border-left: 5px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .task.complete {
+        text-decoration: line-through;
+        opacity: 0.6;
+        border-left-color: green;
+    }
+
+    .task-info {
+        max-width: 75%;
+    }
+
+    .task-date {
+        font-size: 13px;
+        color: #777;
+    }
+
+    .task button {
+        padding: 6px 10px;
+        background: green;
+        border-radius: 5px;
+        font-size: 13px;
+    }
+
+    .list-title {
+        margin-top: 20px;
+        font-size: 18px;
+        font-weight: bold;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>To-Do App</h2>
+
+    <!-- Add New List -->
+    <div class="input-group">
+        <label>Create New List</label>
+        <input type="text" id="new-list" placeholder="e.g. Work, Personal, Shopping">
+        <button onclick="addList()">Add List</button>
+    </div>
+
+    <!-- Select List -->
+    <div class="input-group">
+        <label>Select List</label>
+        <select id="list-select"></select>
+    </div>
+
+    <!-- Add Task -->
+    <div class="input-group">
+        <label>Task</label>
+        <input type="text" id="task-input" placeholder="Enter your task">
+    </div>
+
+    <div class="input-group">
+        <label>Date & Time</label>
+        <input type="datetime-local" id="task-time">
+    </div>
+
+    <button onclick="addTask()">Add Task</button>
+
+    <div id="tasks-area"></div>
+
+</div>
+
+<script>
+let lists = {};  // { listName: [ {task, date, complete} ] }
+
+function addList() {
+    const listName = document.getElementById("new-list").value.trim();
+    if (!listName) return alert("Enter a list name.");
+
+    if (!lists[listName]) {
+        lists[listName] = [];
+        updateListDropdown();
+        document.getElementById("new-list").value = "";
+    }
+}
+
+function updateListDropdown() {
+    const select = document.getElementById("list-select");
+    select.innerHTML = "";
+
+    Object.keys(lists).forEach(list => {
+        const opt = document.createElement("option");
+        opt.value = list;
+        opt.textContent = list;
+        select.appendChild(opt);
+    });
+}
+
+function addTask() {
+    const listName = document.getElementById("list-select").value;
+    if (!listName) return alert("Please select a list.");
+
+    const taskText = document.getElementById("task-input").value.trim();
+    const taskTime = document.getElementById("task-time").value;
+
+    if (!taskText) return alert("Please enter a task.");
+
+    lists[listName].push({
+        task: taskText,
+        time: taskTime,
+        complete: false
+    });
+
+    document.getElementById("task-input").value = "";
+    document.getElementById("task-time").value = "";
+
+    showTasks();
+}
+
+function toggleTask(listName, index) {
+    lists[listName][index].complete = !lists[listName][index].complete;
+    showTasks();
+}
+
+function showTasks() {
+    const area = document.getElementById("tasks-area");
+    area.innerHTML = "";
+
+    const listName = document.getElementById("list-select").value;
+    if (!listName) return;
+
+    area.innerHTML += `<div class="list-title">${listName} Tasks</div>`;
+
+    lists[listName].forEach((item, index) => {
+        const taskDiv = document.createElement("div");
+        taskDiv.className = "task";
+        if (item.complete) taskDiv.classList.add("complete");
+
+        taskDiv.innerHTML = `
+            <div class="task-info">
+                <div>${item.task}</div>
+                <div class="task-date">${item.time ? "Due: " + item.time : ""}</div>
+            </div>
+            <button onclick="toggleTask('${listName}', ${index})">
+                ${item.complete ? "Undo" : "Done"}
+            </button>
+        `;
+
+        area.appendChild(taskDiv);
+    });
+}
+</script>
+
+</body>
+</html>
