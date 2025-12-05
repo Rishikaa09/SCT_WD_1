@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Game</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+    }
+    .question {
+        margin-bottom: 20px;
+        padding: 15px;
+        border: 1px solid #aaa;
+        border-radius: 8px;
+        background: #f9f9f9;
+    }
+    input[type="text"], select {
+        padding: 6px;
+        margin: 5px 0;
+        width: 100%;
+    }
+    button {
+        padding: 10px 20px;
+        margin: 10px 0;
+        background: #333;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #555;
+    }
+</style>
+</head>
+<body>
+
+<h1>Interactive Quiz Game</h1>
+
+<div id="quiz-container"></div>
+
+<button id="submit-btn">Submit Quiz</button>
+<h2 id="result"></h2>
+
+<hr>
+
+<h2>Add New Question</h2>
+
+<select id="new-type">
+  <option value="single">Single Choice</option>
+  <option value="multi">Multi Select</option>
+  <option value="text">Fill in the Blank</option>
+</select>
+
+<input id="new-question" placeholder="Enter question">
+
+<div id="options-area"></div>
+
+<button id="add-question-btn">Add Question</button>
+
+<script>
+let quiz = [
+  {
+    type: "single",
+    question: "What is 2 + 2?",
+    options: ["3", "4", "5"],
+    answer: "4"
+  },
+  {
+    type: "multi",
+    question: "Select prime numbers",
+    options: ["2", "4", "5"],
+    answer: ["2", "5"]
+  },
+  {
+    type: "text",
+    question: "Capital of India?",
+    answer: "delhi"
+  }
+];
+
+const quizContainer = document.getElementById("quiz-container");
+
+function loadQuiz() {
+  quizContainer.innerHTML = "";
+  quiz.forEach((q, idx) => {
+    let html = `<div class="question"><h3>${q.question}</h3>`;
+
+    if (q.type === "single") {
+      q.options.forEach(opt => {
+        html += `<label><input type="radio" name="q${idx}" value="${opt}"> ${opt}</label><br>`;
+      });
+    }
+
+    if (q.type === "multi") {
+      q.options.forEach(opt => {
+        html += `<label><input type="checkbox" name="q${idx}" value="${opt}"> ${opt}</label><br>`;
+      });
+    }
+
+    if (q.type === "text") {
+      html += `<input type="text" id="q${idx}">`;
+    }
+
+    html += `</div>`;
+    quizContainer.innerHTML += html;
+  });
+}
+
+loadQuiz();
+
+document.getElementById("submit-btn").addEventListener("click", () => {
+  let score = 0;
+
+  quiz.forEach((q, idx) => {
+
+    if (q.type === "single") {
+      const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+      if (selected && selected.value === q.answer) score++;
+    }
+
+    if (q.type === "multi") {
+      const selected = [...document.querySelectorAll(`input[name="q${idx}"]:checked`)].map(c => c.value);
+      if (JSON.stringify(selected.sort()) === JSON.stringify(q.answer.sort())) score++;
+    }
+
+    if (q.type === "text") {
+      const val = document.getElementById(`q${idx}`).value.trim().toLowerCase();
+      if (val === q.answer.toLowerCase()) score++;
+    }
+
+  });
+
+  document.getElementById("result").innerText = `Score: ${score} / ${quiz.length}`;
+});
+
+document.getElementById("new-type").addEventListener("change", () => {
+  const type = document.getElementById("new-type").value;
+  const area = document.getElementById("options-area");
+  area.innerHTML = "";
+
+  if (type === "single" || type === "multi") {
+    area.innerHTML = `
+      <input class="new-opt" placeholder="Option 1"><br>
+      <input class="new-opt" placeholder="Option 2"><br>
+      <input class="new-opt" placeholder="Option 3"><br>
+      <input id="new-answer" placeholder="Correct answer (comma for multi)">
+    `;
+  } else {
+    area.innerHTML = `<input id="new-answer" placeholder="Correct text answer">`;
+  }
+});
+
+document.getElementById("add-question-btn").addEventListener("click", () => {
+  const type = document.getElementById("new-type").value;
+  const question = document.getElementById("new-question").value;
+  const answer = document.getElementById("new-answer").value;
+
+  let newQ;
+
+  if (type === "single" || type === "multi") {
+    const opts = [...document.querySelectorAll(".new-opt")].map(o => o.value);
+    newQ = {
+      type,
+      question,
+      options: opts,
+      answer: type === "multi" ? answer.split(",") : answer
+    };
+  } else {
+    newQ = { type, question, answer };
+  }
+
+  quiz.push(newQ);
+  loadQuiz();
+});
+</script>
+
+</body>
+</html>
