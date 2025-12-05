@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stopwatch</title>
+  <style>
+    /* Simple styles (you can move to style.css) */
+    :root { --bg: #0f1724; --card: rgba(255,255,255,0.06); --accent:#ffcc00; }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-family:Inter,Arial,Helvetica,sans-serif;
+      background:linear-gradient(180deg,#071029 0%, #0f1724 100%);
+      color:#e6eef8;
+      padding:20px;
+    }
+    .card{
+      width:360px;
+      padding:22px;
+      border-radius:12px;
+      background:var(--card);
+      box-shadow: 0 8px 30px rgba(2,6,23,0.7);
+      text-align:center;
+    }
+    h1{font-size:20px;margin-bottom:8px}
+    .display{
+      font-weight:700;
+      font-size:36px;
+      letter-spacing:1px;
+      margin:18px 0;
+      background:linear-gradient(90deg,#fff,#ddd);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+    .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+    button{
+      border:0;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:600;
+      background:#152033;color:var(--accent);min-width:78px;
+      transition:transform .12s, box-shadow .12s;
+    }
+    button:hover{transform:translateY(-3px);box-shadow:0 6px 14px rgba(0,0,0,0.4)}
+    button.primary{background:var(--accent);color:#071029}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:#e6eef8}
+    #laps{max-height:210px;overflow:auto;margin-top:10px;padding:8px 6px;text-align:left;}
+    .lap{display:flex;justify-content:space-between;padding:8px 10px;border-radius:6px;margin-bottom:8px;background:rgba(255,255,255,0.02);font-size:14px}
+    .small {font-size:12px;color:rgba(230,238,248,0.7)}
+    .no-laps{color:rgba(230,238,248,0.5);text-align:center;padding:12px}
+  </style>
+</head>
+<body>
+  <div class="card" role="application" aria-label="Stopwatch">
+    <h1>Stopwatch</h1>
+    <div id="display" class="display">00:00:00.000</div>
+
+    <div class="controls" role="group" aria-label="Controls">
+      <button id="startStopBtn" class="primary">Start</button>
+      <button id="pauseBtn" class="ghost">Pause</button>
+      <button id="lapBtn" class="ghost">Lap</button>
+      <button id="resetBtn" class="ghost">Reset</button>
+    </div>
+
+    <div class="small" style="margin-bottom:8px">Laps</div>
+    <div id="laps">
+      <div class="no-laps" id="noLapsText">No laps recorded</div>
+      <!-- lap items will be appended here -->
+    </div>
+  </div>
+
+  <script>
+  // ===== Stopwatch logic =====
+  (function(){
+    // DOM refs
+    const display = document.getElementById('display');
+    const startStopBtn = document.getElementById('startStopBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const lapBtn = document.getElementById('lapBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const lapsContainer = document.getElementById('laps');
+    const noLapsText = document.getElementById('noLapsText');
+
+    // State
+    let startTime = 0;       // timestamp when started (adjusted)
+    let elapsed = 0;        // ms elapsed while running or paused
+    let rafId = null;       // requestAnimationFrame id
+    let running = false;
+    let lapCounter = 0;
+    let lastLapTime = 0;    // elapsed at previous lap for delta lap
+
+    // Format ms -> HH:MM:SS.mmm
+    function formatTime(ms) {
+      if (ms < 0) ms = 0;
+      const hours = Math.floor(ms / 3600000);
+      const minutes = Math.floor(ms / 60000) % 60;
+      const seconds = Math.floor(ms / 1000) % 60;
+      const milliseconds = ms % 1000;
+      const h = String(hours).padStart(2, '0');
+      const m = String(minutes).padStart(2, '0');
+      const s = String(seconds).padStart(2, '0');
+      const msStr = String(milliseconds).padStart(3, '0');
+      return `${h}:${m}:${s}.${msStr}`;
+    }
+
+    // Update display using requestAnimationFrame for smoothness
+    function tick() {
+      const now = Date.now();
+      elapsed = now - startTime;
+      display.textContent = formatTime(elapsed);
+      rafId = requestAnimationFrame(tick);
+    }
+
+    // Start or resume
+    function start() {
+      if (running) return;
+      startTime = Date.now() - elapsed; // resume from elapsed
+      running = true;
+      rafId = requestAnimationFrame(tick);
+      startStopBtn.textContent = 'Running';
+      startStopBtn.classList.remove('primary');
+      startStopBtn.disabled = true; // disable while running to avoid double start
+      pauseBtn.disabled = false;
+      lapBtn.disabled = false;
+    }
+
+    // Pause
+    function pause() {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      // elapsed already updated in tick loop; ensure final value
+      elapsed = Date.now() - startTime;
+      display.textContent = formatTime(elapsed);
+      startStopBtn.textContent = 'Start';
+      startStopBtn.classList.add('primary');
+      startStopBtn.disabled = false;
+      pauseBtn.disabled = true;
+      lapBtn.disabled = true;
+    }
+
+    // Reset
+    function reset() {
+      running = false;
+      cancelAnimationFrame(rafId);
+      rafId = null;
+      elapsed = 0;
+      startTime = 0;
+      display.textContent = formatTime(0);
+      // reset UI state & laps
+      startStopBtn.textContent = 'Start';
+      startStopBtn.disabled = false;
+      startStopBtn.classList.add('primary');
+      pauseBtn.disabled = true;
+      lapBtn.disabled = true;
+      lapCounter = 0;
+      lastLapTime = 0;
+      lapsContainer.innerHTML = '';
+      lapsContainer.appendChild(noLapsText);
+    }
+
+    // Record lap
+    function lap() {
+      if (!running && elapsed === 0) return; // nothing to lap
+      // ensure noLapsText removed
+      if (noLapsText && noLapsText.parentNode) {
+        noLapsText.parentNode.removeChild(noLapsText);
+      }
+
+      const currentElapsed = running ? (Date.now() - startTime) : elapsed;
+      lapCounter += 1;
+      const lapTime = currentElapsed;
+      const delta = lapTime - lastLapTime; // time since previous lap
+      lastLapTime = lapTime;
+
+      const li = document.createElement('div');
+      li.className = 'lap';
+      li.innerHTML = `<div>#${lapCounter} <div class="small">${formatTime(delta)} (split)</div></div>
+                      <div style="text-align:right"><div>${formatTime(lapTime)}</div></div>`;
+      // prepend latest on top
+      lapsContainer.insertBefore(li, lapsContainer.firstChild);
+    }
+
+    // Initial button states
+    pauseBtn.disabled = true;
+    lapBtn.disabled = true;
+
+    // Event listeners
+    startStopBtn.addEventListener('click', start);
+    pauseBtn.addEventListener('click', pause);
+    resetBtn.addEventListener('click', reset);
+    lapBtn.addEventListener('click', lap);
+
+    // Optional: keyboard support (Space = start/pause)
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (running) pause(); else start();
+      }
+    });
+
+    // expose for debugging (optional)
+    window.__stopwatch = { start, pause, reset, lap, formatTime };
+  })();
+  </script>
+</body>
+</html>
